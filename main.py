@@ -6,9 +6,16 @@ from src.visualization import show
 
 def main():
     """RGB와 Depth 스트림을 나란히 보여 주는 실행 예제다."""
+    
     camera = start("rgb", "depth")
+    
     while show(side_by_side((frames := camera.read()).rgb, frames.depth)):
         pass
+
+    # camera = start("ir")
+
+    # while show(camera.read().ir(1)):
+    #     pass
     camera.stop()
     cv2.destroyAllWindows()
 
