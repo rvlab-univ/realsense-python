@@ -1,34 +1,68 @@
+"""Record a RealSense RGB capture for later 3DGS/COLMAP preprocessing."""
 
+import argparse
+from datetime import datetime, timezone
 from pathlib import Path
 
 import cv2
-import numpy as np
+
+from src.camera import start
+from src.capture import capture_video, save_capture_metadata, save_intrinsics
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--name", required=True, help="Scene name, e.g. desk_01")
+    parser.add_argument("--output-dir", type=Path, default=Path("outputs/captures"))
+    parser.add_argument("--width", type=int, default=1280)
+    parser.add_argument("--height", type=int, default=720)
+    parser.add_argument("--fps", type=int, default=30)
+    parser.add_argument("--duration", type=float, help="Optional maximum recording duration in seconds")
+    return parser.parse_args()
+
 
 def main() -> None:
-    """위에 있는 함수들로 캡쳐하는 방법 예제입니다."""
-    from src.camera import start
-    from src.processing import side_by_side
-    from src.capture import capture_video
+    args = parse_args()
+    capture_dir = args.output_dir / args.name
+    if capture_dir.exists():
+        raise FileExistsError(f"capture directory already exists: {capture_dir}")
+    capture_dir.mkdir(parents=True)
 
-    output_path = Path("outputs/video.mp4") # 저장경로 명시
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    # 카메라 캡쳐 실행
-    camera = start("rgb")
+    video_path = capture_dir / "video.mp4"
+    camera = start("rgb", width=args.width, height=args.height, fps=args.fps)
+    started_at = datetime.now(timezone.utc)
+    frame_count = 0
 
     try:
-        # 비디오 캡쳐 시하는 with 구문, 프레임은 30fps가 기본, 원하면 명시
-        with capture_video(output_path, 5) as video:
+        with capture_video(video_path, args.fps) as video:
             while True:
-                frames = camera.read() # 데이터 받아와서
+                frames = camera.read()
                 video.write(frames.rgb)
-
-                cv2.imshow("RealSense", frames.rgb)
-                if cv2.waitKey(1) in (ord("q"), 27):
+                frame_count += 1
+                cv2.imshow("RealSense (q or Esc to stop)", frames.rgb)
+                elapsed = (datetime.now(timezone.utc) - started_at).total_seconds()
+                if cv2.waitKey(1) in (ord("q"), 27) or (
+                    args.duration is not None and elapsed >= args.duration
+                ):
                     break
     finally:
+        save_intrinsics(camera.intrinsics, capture_dir / "intrinsics.json")
+        save_capture_metadata(
+            {
+                "video": video_path.name,
+                "color_fps": args.fps,
+                "requested_width": args.width,
+                "requested_height": args.height,
+                "started_at": started_at.isoformat(),
+                "recorded_frame_count": frame_count,
+            },
+            capture_dir / "capture.json",
+        )
         camera.stop()
         cv2.destroyAllWindows()
+
+    print(f"Capture saved to: {capture_dir}")
+
 
 if __name__ == "__main__":
     main()

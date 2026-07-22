@@ -2,6 +2,37 @@
 
 realsense d435i camera 셋업 및 재사용 가능한 함수 및 클래스 제공
 
+## 3DGS용 RGB 영상 캡처
+
+원본 MP4와 해당 RGB 카메라의 intrinsic을 같은 장면 폴더에 저장한 뒤, 별도 후처리로 COLMAP용 JPG를 추출합니다. 촬영 중에는 장면은 고정하고 카메라를 천천히 움직여 인접 뷰가 충분히 겹치게 합니다.
+
+```bash
+uv run python capture_videosss.py --name desk_01 --duration 60
+```
+
+기본 출력은 다음과 같습니다.
+
+```text
+outputs/captures/desk_01/
+├── video.mp4
+├── intrinsics.json
+└── capture.json
+```
+
+`q` 또는 `Esc`로도 녹화를 종료할 수 있습니다. 기본 캡처는 1280×720, 30 FPS이며, 필요하면 `--width`, `--height`, `--fps`를 지정합니다.
+
+## COLMAP용 JPG 샘플링
+
+원본 영상을 다시 촬영하지 않고 원하는 빈도로 프레임을 추출합니다. 3DGS/SfM에는 우선 5 Hz를 권장합니다.
+
+```bash
+uv run python postprocessing/sampler.py \
+  --capture-dir outputs/captures/desk_01 \
+  --fps 5
+```
+
+이 명령은 `images/`와 `sampling.json`을 추가합니다. 기존 `images/`가 있으면 덮어쓰지 않고 중단하므로, 다른 Hz로 다시 만들려면 새 장면 폴더를 쓰거나 기존 `images/`를 보관한 뒤 실행합니다.
+
 
 ## 카메라가 데이터 Matrix Shape 설명
 

@@ -9,8 +9,9 @@ import main as example
 
 
 class Camera:
-    def __init__(self, frames):
+    def __init__(self, frames, intrinsics=None):
         self.frames = frames
+        self.intrinsics = intrinsics or {"fx": 600.0}
         self.stopped = False
 
     def read(self):
@@ -80,3 +81,32 @@ def test_main_releases_camera_and_windows_when_processing_fails(monkeypatch):
 
     assert camera.stopped is True
     assert cv2.destroyed is True
+
+
+def test_main_saves_raw_bgr_image_and_intrinsics_when_s_is_pressed(monkeypatch):
+    rgb = object()
+    camera = Camera(SimpleNamespace(rgb=rgb, depth=object()), {"fx": 600.0})
+    cv2 = CV2()
+    keys = iter((ord("s"), ord("q")))
+    saved_images = []
+    saved_intrinsics = []
+
+    monkeypatch.setattr(example, "start", lambda *streams: camera)
+    monkeypatch.setattr(example, "side_by_side", lambda rgb, depth: object())
+    monkeypatch.setattr(example, "cv2", cv2)
+    monkeypatch.setattr(cv2, "waitKey", lambda delay: next(keys))
+    monkeypatch.setattr(
+        example, "save_image", lambda image, path: saved_images.append((image, path))
+    )
+    monkeypatch.setattr(
+        example,
+        "save_intrinsics",
+        lambda intrinsics, path: saved_intrinsics.append((intrinsics, path)),
+    )
+
+    example.main()
+
+    assert saved_images == [(rgb, Path("outputs/images/image.png"))]
+    assert saved_intrinsics == [
+        ({"fx": 600.0}, Path("outputs/images/intrinsics.json"))
+    ]

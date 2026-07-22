@@ -1,3 +1,4 @@
+import json
 from os import PathLike
 from pathlib import Path
 from typing import Protocol
@@ -5,7 +6,30 @@ from typing import Protocol
 import cv2
 import numpy as np
 
-__all__ = ["VideoRecorder", "capture_video"]
+__all__ = [
+    "VideoRecorder",
+    "capture_video",
+    "save_capture_metadata",
+    "save_image",
+    "save_intrinsics",
+]
+
+
+def save_image(image: np.ndarray, path: str | PathLike[str]) -> bool:
+    """BGR 이미지를 지정한 경로에 저장한다."""
+    return cv2.imwrite(str(path), image)
+
+
+def save_intrinsics(intrinsics: dict[str, object], path: str | PathLike[str]) -> None:
+    """카메라 내부 파라미터를 JSON 파일로 저장한다."""
+    with Path(path).open("w") as file:
+        json.dump(intrinsics, file)
+
+
+def save_capture_metadata(metadata: dict[str, object], path: str | PathLike[str]) -> None:
+    """캡처 재현에 필요한 설정을 JSON 파일로 저장한다."""
+    with Path(path).open("w") as file:
+        json.dump(metadata, file, indent=2)
 
 class VideoWriter(Protocol):
     def write(self, image: np.ndarray) -> None: ...
@@ -44,33 +68,3 @@ def capture_video(
 ) -> VideoRecorder:
     """Create a context manager that records frames supplied by the caller."""
     return VideoRecorder(output_path, fps)
-
-
-def main() -> None:
-    """위에 있는 함수들로 캡쳐하는 방법 예제입니다."""
-    from .camera import start
-    from .processing import side_by_side
-
-    output_path = Path("outputs/video.mp4") # 저장경로 명시
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    # 카메라 캡쳐 실행
-    camera = start("rgb", "depth")
-
-    try:
-        # 비디오 캡쳐 시하는 with 구문, 프레임은 30fps가 기본, 원하면 명시
-        with capture_video(output_path) as video:
-            while True:
-                frames = camera.read() # 데이터 받아와서
-                image = side_by_side(frames.rgb, frames.depth)
-                video.write(image)
-
-                cv2.imshow("RealSense", image)
-                if cv2.waitKey(1) in (ord("q"), 27):
-                    break
-    finally:
-        camera.stop()
-        cv2.destroyAllWindows()
-
-if __name__ == "__main__":
-    main()
