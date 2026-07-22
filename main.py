@@ -1,8 +1,11 @@
 import os
 import cv2
 
+from src.camera import WIDTH, HEIGHT, FPS
 from src.camera import start
 from src.processing import side_by_side
+
+WIDTH, HEIGHT, FPS = 640, 480, 30
 
 def main():
     """RGB와 Depth 스트림을 나란히 보여 주는 실행 예제다."""
