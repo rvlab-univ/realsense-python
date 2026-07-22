@@ -23,12 +23,17 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+
+    # 파일 저장 경로 설정
     capture_dir = args.output_dir / args.name
     if capture_dir.exists():
         raise FileExistsError(f"capture directory already exists: {capture_dir}")
     capture_dir.mkdir(parents=True)
 
+
     video_path = capture_dir / "video.mp4"
+
+    # 캡쳐 시작
     camera = start("rgb", width=args.width, height=args.height, fps=args.fps)
     started_at = datetime.now(timezone.utc)
     frame_count = 0
@@ -46,6 +51,8 @@ def main() -> None:
                 ):
                     break
     finally:
+        # 캡쳐 종료 후
+        # 카메라 내부 파라미터 저장
         save_intrinsics(camera.intrinsics, capture_dir / "intrinsics.json")
         save_capture_metadata(
             {
@@ -58,6 +65,7 @@ def main() -> None:
             },
             capture_dir / "capture.json",
         )
+
         camera.stop()
         cv2.destroyAllWindows()
 

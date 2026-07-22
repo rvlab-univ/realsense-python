@@ -46,7 +46,7 @@ def test_main_displays_combined_rgb_and_depth_frame(monkeypatch):
     cv2 = CV2()
     received_images = []
 
-    monkeypatch.setattr(example, "start", lambda *streams: camera)
+    monkeypatch.setattr(example, "start", lambda *streams, **settings: camera)
     monkeypatch.setattr(
         example,
         "side_by_side",
@@ -64,11 +64,38 @@ def test_main_displays_combined_rgb_and_depth_frame(monkeypatch):
     assert cv2.wait_delays == [1]
 
 
+def test_main_starts_camera_with_configured_capture_dimensions(monkeypatch):
+    camera = Camera(SimpleNamespace(rgb=object(), depth=object()))
+    cv2 = CV2()
+    start_calls = []
+
+    monkeypatch.setattr(
+        example,
+        "start",
+        lambda *streams, **settings: start_calls.append((streams, settings)) or camera,
+    )
+    monkeypatch.setattr(example, "side_by_side", lambda rgb, depth: object())
+    monkeypatch.setattr(example, "cv2", cv2)
+
+    example.main()
+
+    assert start_calls == [
+        (
+            ("rgb", "depth"),
+            {
+                "width": example.CAPTURE_WIDTH,
+                "height": example.CAPTURE_HEIGHT,
+                "fps": example.CAPTURE_FPS,
+            },
+        )
+    ]
+
+
 def test_main_releases_camera_and_windows_when_processing_fails(monkeypatch):
     camera = Camera(SimpleNamespace(rgb=object(), depth=object()))
     cv2 = CV2()
 
-    monkeypatch.setattr(example, "start", lambda *streams: camera)
+    monkeypatch.setattr(example, "start", lambda *streams, **settings: camera)
     monkeypatch.setattr(
         example,
         "side_by_side",
@@ -91,7 +118,7 @@ def test_main_saves_raw_bgr_image_and_intrinsics_when_s_is_pressed(monkeypatch):
     saved_images = []
     saved_intrinsics = []
 
-    monkeypatch.setattr(example, "start", lambda *streams: camera)
+    monkeypatch.setattr(example, "start", lambda *streams, **settings: camera)
     monkeypatch.setattr(example, "side_by_side", lambda rgb, depth: object())
     monkeypatch.setattr(example, "cv2", cv2)
     monkeypatch.setattr(cv2, "waitKey", lambda delay: next(keys))

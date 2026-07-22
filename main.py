@@ -5,11 +5,21 @@ from src.camera import start
 from src.capture import save_image, save_intrinsics
 from src.processing import side_by_side
 
+CAPTURE_WIDTH = 640
+CAPTURE_HEIGHT = 480
+CAPTURE_FPS = 30
+
 
 def main():
     """RGB와 Depth 스트림을 나란히 보여 주는 실행 예제다."""
 
-    camera = start("rgb", "depth")
+    camera = start(
+        "rgb",
+        "depth",
+        width=CAPTURE_WIDTH,
+        height=CAPTURE_HEIGHT,
+        fps=CAPTURE_FPS,
+    )
 
     try:
         while True:
