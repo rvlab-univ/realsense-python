@@ -38,6 +38,9 @@ class Pipeline:
     def wait_for_frames(self):
         return RawFrames()
 
+    def get_active_profile(self):
+        return ActiveProfile()
+
     def stop(self):
         self.stopped = True
 
@@ -48,6 +51,31 @@ class Config:
 
     def enable_stream(self, *stream):
         self.enabled.append(stream)
+
+
+class Intrinsics:
+    width = 640
+    height = 480
+    fx = 600.0
+    fy = 601.0
+    ppx = 320.0
+    ppy = 240.0
+    model = "brown_conrady"
+    coeffs = (1.0, 2.0, 3.0, 4.0, 5.0)
+
+
+class VideoStreamProfile:
+    def get_intrinsics(self):
+        return Intrinsics()
+
+    def as_video_stream_profile(self):
+        return self
+
+
+class ActiveProfile:
+    def get_stream(self, stream):
+        assert stream == "color"
+        return VideoStreamProfile()
 
 
 class RealSense:
@@ -90,3 +118,19 @@ def test_read_exposes_requested_data_from_one_frameset(monkeypatch):
     left, right = frames.stereo
     assert np.array_equal(left, np.full((2, 3), 1, dtype=np.uint8))
     assert np.array_equal(right, np.full((2, 3), 2, dtype=np.uint8))
+
+
+def test_intrinsics_returns_color_stream_calibration(monkeypatch):
+    monkeypatch.setattr(camera, "rs", RealSense)
+    device = camera.start("rgb")
+
+    assert device.intrinsics == {
+        "width": 640,
+        "height": 480,
+        "fx": 600.0,
+        "fy": 601.0,
+        "ppx": 320.0,
+        "ppy": 240.0,
+        "model": "brown_conrady",
+        "coeffs": [1.0, 2.0, 3.0, 4.0, 5.0],
+    }

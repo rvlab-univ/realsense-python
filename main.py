@@ -1,11 +1,10 @@
-import os
 import cv2
+from pathlib import Path
 
-from src.camera import WIDTH, HEIGHT, FPS
 from src.camera import start
+from src.capture import save_image, save_intrinsics
 from src.processing import side_by_side
 
-WIDTH, HEIGHT, FPS = 640, 480, 30
 
 def main():
     """RGB와 Depth 스트림을 나란히 보여 주는 실행 예제다."""
@@ -18,17 +17,16 @@ def main():
             image = side_by_side(frames.rgb, frames.depth) # 후처리, 이미지를 한 화면에 띄울 수 있도록 만들어줌
 
             cv2.imshow("RealSense", image)
-            if cv2.waitKey(1) in (ord("q"), 27):
+            key = cv2.waitKey(1)
+            if key == ord("s"):
+                output_path = Path("outputs/images")
+                output_path.mkdir(parents=True, exist_ok=True)
+                save_image(frames.rgb, output_path / "image.png")
+                save_intrinsics(camera.intrinsics, output_path / "intrinsics.json")
+                print("image saved: outputs/images/image.png")
+            if key in (ord("q"), 27):
                 break
     finally:
-        if image is not None:
-            save_path = "outputs/images"
-            os.makedirs(save_path, exist_ok=True)
-            full_path = os.path.join(save_path, "image.png")
-            
-            cv2.imwrite(full_path, image)
-            print(f"image saved: {full_path}")
-
         camera.stop()
         cv2.destroyAllWindows()
 

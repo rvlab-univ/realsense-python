@@ -1,3 +1,4 @@
+import json
 from os import PathLike
 from pathlib import Path
 from typing import Protocol
@@ -5,7 +6,18 @@ from typing import Protocol
 import cv2
 import numpy as np
 
-__all__ = ["VideoRecorder", "capture_video"]
+__all__ = ["VideoRecorder", "capture_video", "save_image", "save_intrinsics"]
+
+
+def save_image(image: np.ndarray, path: str | PathLike[str]) -> bool:
+    """BGR 이미지를 지정한 경로에 저장한다."""
+    return cv2.imwrite(str(path), image)
+
+
+def save_intrinsics(intrinsics: dict[str, object], path: str | PathLike[str]) -> None:
+    """카메라 내부 파라미터를 JSON 파일로 저장한다."""
+    with Path(path).open("w") as file:
+        json.dump(intrinsics, file)
 
 class VideoWriter(Protocol):
     def write(self, image: np.ndarray) -> None: ...

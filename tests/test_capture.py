@@ -37,13 +37,21 @@ class CV2:
         return self.writer
 
 
-def test_capture_image_writes_one_frame(monkeypatch):
+def test_save_image_writes_one_bgr_frame(monkeypatch):
     cv2 = CV2()
     image = np.zeros((2, 3, 3), dtype=np.uint8)
     monkeypatch.setattr(capture, "cv2", cv2, raising=False)
 
-    assert capture.capture_image(image, "frame.png") is True
+    assert capture.save_image(image, "frame.png") is True
     assert cv2.saved_images == [("frame.png", image)]
+
+
+def test_save_intrinsics_writes_json(tmp_path):
+    path = tmp_path / "intrinsics.json"
+
+    capture.save_intrinsics({"fx": 600.0}, path)
+
+    assert path.read_text() == '{"fx": 600.0}'
 
 
 def test_capture_video_writes_frames_and_releases_writer(monkeypatch):
