@@ -39,13 +39,16 @@ def main() -> None:
     frame_count = 0
 
     try:
+        # 캡쳐 시작, 비디오 파일을 열고 프레임을 기록
         with capture_video(video_path, args.fps) as video:
             while True:
-                frames = camera.read()
-                video.write(frames.rgb)
+                frames = camera.read() # 각 프레임을 읽어오고
+                video.write(frames.rgb) # 각 프레임을 비디오 파일에 기록하고
                 frame_count += 1
-                cv2.imshow("RealSense (q or Esc to stop)", frames.rgb)
+
+                cv2.imshow("RealSense (q or Esc to stop)", frames.rgb) # 동시에 같이 보여주고
                 elapsed = (datetime.now(timezone.utc) - started_at).total_seconds()
+                
                 if cv2.waitKey(1) in (ord("q"), 27) or (
                     args.duration is not None and elapsed >= args.duration
                 ):
