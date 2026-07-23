@@ -81,4 +81,5 @@ def parse_args() -> argparse.Namespace:
 if __name__ == "__main__":
     args = parse_args()
     images = sample_capture(args.capture_dir, args.fps)
+    # (realsense-python) ahris@ahris:~/workspace/realsense-python$ uv run src/sampler.py --capture-dir outputs/captures/data01 --fps 5
     print(f"Sampled frames written to: {images}")

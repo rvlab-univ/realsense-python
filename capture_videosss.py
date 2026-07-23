@@ -9,7 +9,7 @@ import cv2
 from src.camera import start
 from src.capture import capture_video, save_capture_metadata, save_intrinsics
 
-
+# 요즘 인공지능들이 쓸 수 있도록 arguments를 엄청 많이 붙여주는게 유행이라, 에이전트들이 계속 만든다. 두어서 나쁠거 없다.
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--name", required=True, help="Scene name, e.g. desk_01")
