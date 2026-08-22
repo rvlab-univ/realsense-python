@@ -5,7 +5,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
 
-from src import capture
+from realsense_capture import capture
 
 
 class Writer:

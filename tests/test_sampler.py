@@ -7,7 +7,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parents[1]))
 
 try:
-    import src.sampler as sampler
+    import realsense_capture.sampler as sampler
 except ModuleNotFoundError:
     sampler = None
 

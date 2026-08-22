@@ -28,6 +28,28 @@ class Frames:
         """왼쪽과 오른쪽 IR 프레임을 튜플로 반환한다."""
         return self.ir(1), self.ir(2)
 
+    @property
+    def accel(self) -> np.ndarray | None:
+        """가속도계 측정값(m/s^2, xyz)을 반환한다. 이번 프레임셋에 없으면 None."""
+        return self._motion_data(rs.stream.accel)
+
+    @property
+    def gyro(self) -> np.ndarray | None:
+        """자이로 각속도(rad/s, xyz)를 반환한다. 이번 프레임셋에 없으면 None."""
+        return self._motion_data(rs.stream.gyro)
+
+    @property
+    def timestamp_ms(self) -> float:
+        """프레임셋의 타임스탬프(ms)를 반환한다. 프레임 간 dt 계산에 쓴다."""
+        return self.raw.get_timestamp()
+
+    def _motion_data(self, stream_type: rs.stream) -> np.ndarray | None:
+        frame = self.raw.first_or_default(stream_type)
+        if not frame:
+            return None
+        data = frame.as_motion_frame().get_motion_data()
+        return np.array([data.x, data.y, data.z])
+
 
 class Camera:
     """RealSense 파이프라인의 프레임 수신과 종료를 담당한다."""
@@ -58,6 +80,16 @@ class Camera:
             "coeffs": list(intrinsics.coeffs),
         }
 
+    def imu_extrinsics(self, to_stream: rs.stream = rs.stream.color) -> tuple[np.ndarray, np.ndarray]:
+        """자이로 좌표계 -> to_stream 좌표계로 변환하는 (회전 3x3, 이동 3) 튜플을 반환한다."""
+        profile = self.pipeline.get_active_profile()
+        gyro_stream = profile.get_stream(rs.stream.gyro)
+        target_stream = profile.get_stream(to_stream)
+        extrinsics = gyro_stream.get_extrinsics_to(target_stream)
+        rotation = np.array(extrinsics.rotation).reshape(3, 3).T  # librealsense는 column-major로 반환
+        translation = np.array(extrinsics.translation)
+        return rotation, translation
+
     def stop(self) -> None:
         """실행 중인 RealSense 파이프라인을 종료한다."""
         self.pipeline.stop()
@@ -87,6 +119,11 @@ def start(*streams: str, width=640, height=480, fps=30) -> Camera:
     if "ir" in streams or "stereo" in streams:
         config.enable_stream(rs.stream.infrared, 1, width, height, rs.format.y8, fps)
         config.enable_stream(rs.stream.infrared, 2, width, height, rs.format.y8, fps)
+    # rgb/depth 같은 비디오 스트림과 함께 열 때는 fps를 명시하지 않으면 resolve가 실패한다.
+    if "accel" in streams or "imu" in streams:
+        config.enable_stream(rs.stream.accel, rs.format.motion_xyz32f, 200)
+    if "gyro" in streams or "imu" in streams:
+        config.enable_stream(rs.stream.gyro, rs.format.motion_xyz32f, 200)
 
     camera = Camera(config)
     camera.pipeline.start(config)

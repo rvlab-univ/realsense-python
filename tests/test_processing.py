@@ -5,7 +5,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
 
-from src.processing import depth_colormap, side_by_side
+from realsense_capture.processing import depth_colormap, side_by_side
 
 
 def test_depth_colormap_returns_bgr_image():

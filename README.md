@@ -78,6 +78,56 @@ outputs/captures/desk_01/
 
 `512×512`는 지원하지 않습니다. 정사각형 결과가 필요하면 지원되는 해상도로 캡처한 뒤 중앙 크롭 또는 리사이즈하세요.
 
+## IMU (가속도계 / 자이로) 사용하기
+
+D435i는 가속도계(accel)와 자이로(gyro)를 내장하고 있습니다. `start()`에 `"imu"`(또는 개별로 `"accel"`, `"gyro"`)를 넣으면 RGB/Depth와 함께 활성화됩니다.
+
+```python
+from realsense_capture.camera import start
+import pyrealsense2 as rs
+
+camera = start("rgb", "depth", "imu", width=640, height=480, fps=30)
+
+frames = camera.read()
+frames.accel        # np.ndarray([x, y, z]) m/s^2, 정지 상태면 중력 방향으로 대략 9.8 크기
+frames.gyro          # np.ndarray([x, y, z]) rad/s, 카메라 자체(body) 좌표계 기준 각속도
+frames.timestamp_ms  # 이 프레임셋의 타임스탬프(ms) - 프레임 간 dt 계산용
+
+# 자이로/가속도계 좌표계는 color/depth 광학 좌표계와 정확히 일치하지 않으므로,
+# 각속도·가속도 벡터를 다른 스트림 좌표계로 옮기려면 외부 파라미터(extrinsics)를 적용해야 함
+R, t = camera.imu_extrinsics(rs.stream.color)  # 자이로 좌표계 -> color 좌표계 회전/이동
+```
+
+**주의**: `rgb`/`depth` 같은 비디오 스트림과 `imu`를 같이 열 때는 `enable_stream`에 fps를 명시해야 합니다(생략하면 `Couldn't resolve requests`로 실패). `start()`는 내부적으로 `accel`/`gyro`를 200 FPS로 요청합니다.
+
+**Linux 권한 설정 (최초 1회 필요)**: `pyrealsense2`를 pip/uv로만 설치하면 공식 librealsense udev 규칙이 시스템에 설치되지 않아, IMU 스트림을 열 때 다음처럼 실패합니다.
+
+```text
+RuntimeError: Failed to open scan_element .../scan_elements/in_anglvel_x_en Last Error: Permission denied
+```
+
+RGB/Depth는 표준 USB Video Class라 문제없지만, IMU는 Linux IIO(HID 센서) 서브시스템을 거치는데 이 경로의 권한이 기본적으로 `root`에게만 열려 있어서입니다. [librealsense 공식 udev 규칙](https://github.com/IntelRealSense/librealsense/blob/master/config/99-realsense-libusb.rules)을 설치하면 해결됩니다.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/IntelRealSense/librealsense/master/config/99-realsense-libusb.rules \
+  -o /tmp/99-realsense-libusb.rules
+sudo cp /tmp/99-realsense-libusb.rules /etc/udev/rules.d/99-realsense-libusb.rules
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+```
+
+규칙 적용 후 **USB 케이블을 뽑았다가 다시 꽂아야** 새 규칙이 이미 연결된 장치에도 반영됩니다.
+
+## 다른 프로젝트에서 라이브러리로 쓰기
+
+이 저장소는 `pyproject.toml`에 hatchling 빌드 설정이 있어 editable 설치가 가능합니다. 다른 uv 프로젝트(예: 형제 디렉터리의 `dynamic-GS`)에서:
+
+```bash
+uv add --editable ../realsense-python
+```
+
+이렇게 등록하면 `from realsense_capture.camera import start, Frames` 형태로 바로 import할 수 있습니다. 코드를 수정하면(editable이므로) 재설치 없이 즉시 반영됩니다.
+
 ## COLMAP용 JPG 샘플링
 
 원본 영상을 다시 촬영하지 않고 원하는 빈도로 프레임을 추출합니다. 3DGS/SfM에는 우선 5 Hz를 권장합니다.

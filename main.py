@@ -1,9 +1,9 @@
 import cv2
 from pathlib import Path
 
-from src.camera import start
-from src.capture import save_image, save_intrinsics
-from src.processing import side_by_side
+from realsense_capture.camera import start
+from realsense_capture.capture import save_image, save_intrinsics
+from realsense_capture.processing import side_by_side
 
 CAPTURE_WIDTH = 640
 CAPTURE_HEIGHT = 480

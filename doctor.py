@@ -2,7 +2,7 @@
 
 import sys
 
-from src.camera import list_devices
+from realsense_capture.camera import list_devices
 
 
 def main() -> None:
