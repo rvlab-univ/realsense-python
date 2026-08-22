@@ -78,9 +78,26 @@ class ActiveProfile:
         return VideoStreamProfile()
 
 
+class Device:
+    def __init__(self, info):
+        self.info = info
+
+    def get_info(self, key):
+        return self.info[key]
+
+
+class Context:
+    def __init__(self, devices):
+        self.devices = devices
+
+    def query_devices(self):
+        return self.devices
+
+
 class RealSense:
     pipeline = Pipeline
     config = Config
+    devices = []
 
     class stream:
         color = "color"
@@ -91,6 +108,15 @@ class RealSense:
         bgr8 = "bgr8"
         z16 = "z16"
         y8 = "y8"
+
+    class camera_info:
+        name = "name"
+        serial_number = "serial_number"
+        firmware_version = "firmware_version"
+
+    @classmethod
+    def context(cls):
+        return Context(cls.devices)
 
 
 def test_start_enables_requested_streams(monkeypatch):
@@ -118,6 +144,34 @@ def test_read_exposes_requested_data_from_one_frameset(monkeypatch):
     left, right = frames.stereo
     assert np.array_equal(left, np.full((2, 3), 1, dtype=np.uint8))
     assert np.array_equal(right, np.full((2, 3), 2, dtype=np.uint8))
+
+
+def test_list_devices_returns_empty_when_no_camera_connected(monkeypatch):
+    monkeypatch.setattr(camera, "rs", RealSense)
+    RealSense.devices = []
+
+    assert camera.list_devices() == []
+
+
+def test_list_devices_returns_connected_camera_info(monkeypatch):
+    monkeypatch.setattr(camera, "rs", RealSense)
+    RealSense.devices = [
+        Device(
+            {
+                "name": "Intel RealSense D435I",
+                "serial_number": "123456789",
+                "firmware_version": "5.13.0.50",
+            }
+        )
+    ]
+
+    assert camera.list_devices() == [
+        {
+            "name": "Intel RealSense D435I",
+            "serial_number": "123456789",
+            "firmware_version": "5.13.0.50",
+        }
+    ]
 
 
 def test_intrinsics_returns_color_stream_calibration(monkeypatch):

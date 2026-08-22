@@ -63,6 +63,20 @@ class Camera:
         self.pipeline.stop()
 
 
+def list_devices() -> list[dict[str, str]]:
+    """연결된 RealSense 장치 목록을 이름과 시리얼 번호로 반환한다."""
+    devices = []
+    for device in rs.context().query_devices():
+        devices.append(
+            {
+                "name": device.get_info(rs.camera_info.name),
+                "serial_number": device.get_info(rs.camera_info.serial_number),
+                "firmware_version": device.get_info(rs.camera_info.firmware_version),
+            }
+        )
+    return devices
+
+
 def start(*streams: str, width=640, height=480, fps=30) -> Camera:
     """요청한 스트림을 활성화하고 실행 중인 카메라 객체를 반환한다."""
     config = rs.config()
